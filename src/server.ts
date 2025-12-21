@@ -14,11 +14,40 @@ const INJECTED_SCRIPT = `
     console.log('[hot-server] Connected to hot reload');
     const evtSource = new EventSource('/_hot_server_sse');
     evtSource.onmessage = function(event) {
-      if (event.data === 'reload') {
-        console.log('[hot-server] Reloading...');
-        window.location.reload();
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'css') {
+          console.log('[hot-server] CSS changed, injecting...');
+          injectCSS(data.file);
+        } else {
+          console.log('[hot-server] Reloading...');
+          window.location.reload();
+        }
+      } catch (e) {
+        // Fallback para compatibilidade
+        if (event.data === 'reload') {
+          console.log('[hot-server] Reloading...');
+          window.location.reload();
+        }
       }
     };
+
+    function injectCSS(filePath) {
+      // Remove timestamp do cache dos links CSS
+      const links = document.querySelectorAll('link[rel="stylesheet"]');
+      const timestamp = Date.now();
+
+      links.forEach(link => {
+        const href = link.getAttribute('href');
+        if (href && href.includes(filePath)) {
+          // Força reload do CSS adicionando/removendo timestamp
+          const newHref = href.split('?')[0] + '?v=' + timestamp;
+          link.setAttribute('href', newHref);
+          console.log('[hot-server] CSS injected:', filePath);
+        }
+      });
+    }
+
     evtSource.onerror = function() {
       console.log('[hot-server] Disconnected. Retrying...');
     };
@@ -27,16 +56,67 @@ const INJECTED_SCRIPT = `
 `;
 
 const MIME_TYPES: Record<string, string> = {
+    // Textos e documentos
     '.html': 'text/html',
+    '.htm': 'text/html',
     '.css': 'text/css',
     '.js': 'text/javascript',
+    '.mjs': 'text/javascript',
     '.json': 'application/json',
+    '.xml': 'application/xml',
+    '.txt': 'text/plain',
+    '.md': 'text/markdown',
+
+    // Imagens
     '.png': 'image/png',
     '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
     '.gif': 'image/gif',
     '.svg': 'image/svg+xml',
     '.ico': 'image/x-icon',
-    '.wasm': 'application/wasm'
+    '.webp': 'image/webp',
+    '.bmp': 'image/bmp',
+    '.tiff': 'image/tiff',
+    '.tif': 'image/tiff',
+
+    // Vídeos
+    '.mp4': 'video/mp4',
+    '.webm': 'video/webm',
+    '.ogg': 'video/ogg',
+    '.avi': 'video/x-msvideo',
+    '.mov': 'video/quicktime',
+    '.wmv': 'video/x-ms-wmv',
+    '.flv': 'video/x-flv',
+
+    // Áudios
+    '.mp3': 'audio/mpeg',
+    '.wav': 'audio/wav',
+    '.ogg': 'audio/ogg',
+    '.aac': 'audio/aac',
+    '.m4a': 'audio/m4a',
+    '.opus': 'audio/opus',
+
+    // Fontes
+    '.woff': 'font/woff',
+    '.woff2': 'font/woff2',
+    '.ttf': 'font/ttf',
+    '.otf': 'font/otf',
+    '.eot': 'application/vnd.ms-fontobject',
+
+    // Aplicações e manifestos
+    '.pdf': 'application/pdf',
+    '.zip': 'application/zip',
+    '.gzip': 'application/gzip',
+    '.tar': 'application/x-tar',
+    '.wasm': 'application/wasm',
+    '.webmanifest': 'application/manifest+json',
+
+    // Outros tipos comuns
+    '.csv': 'text/csv',
+    '.tsv': 'text/tab-separated-values',
+    '.yaml': 'application/x-yaml',
+    '.yml': 'application/x-yaml',
+    '.toml': 'application/toml'
 };
 
 export class HotServer {
@@ -68,9 +148,21 @@ export class HotServer {
         }
 
         if (!existsSync(filePath)) {
-            res.writeHead(404);
-            res.end(`File not found: ${req.url}`);
-            return;
+            // Suporte SPA: se arquivo não existe, tenta servir index.html
+            if (this.config.spa === 'true') {
+                const indexPath = path.join(this.config.root, 'index.html');
+                if (existsSync(indexPath)) {
+                    filePath = indexPath;
+                } else {
+                    res.writeHead(404);
+                    res.end(`File not found: ${req.url}`);
+                    return;
+                }
+            } else {
+                res.writeHead(404);
+                res.end(`File not found: ${req.url}`);
+                return;
+            }
         }
 
         const ext = path.extname(filePath).toLowerCase();
@@ -87,7 +179,12 @@ export class HotServer {
                     content += INJECTED_SCRIPT;
                 }
                 
-                res.writeHead(200, { 'Content-Type': 'text/html' });
+                res.writeHead(200, {
+                    'Content-Type': 'text/html',
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+                    'Access-Control-Allow-Headers': 'Content-Type'
+                });
                 res.end(content);
             } catch (err) {
                 res.writeHead(500);
@@ -95,7 +192,12 @@ export class HotServer {
             }
         } else {
             // Stream para arquivos binários ou grandes
-            res.writeHead(200, { 'Content-Type': mimeType });
+            res.writeHead(200, {
+                'Content-Type': mimeType,
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type'
+            });
             const stream = createReadStream(filePath);
             stream.pipe(res);
         }
@@ -119,9 +221,22 @@ export class HotServer {
         });
     }
 
-    private notifyClients() {
+    private notifyClients(changedFile?: string) {
         if (this.clients.size === 0) return;
-        
+
+        if (changedFile) {
+            const ext = path.extname(changedFile).toLowerCase();
+            if (ext === '.css') {
+                console.log(`📡 Notificando ${this.clients.size} clientes sobre mudança CSS: ${changedFile}`);
+                const data = JSON.stringify({ type: 'css', file: changedFile });
+                for (const client of this.clients) {
+                    client.write(`data: ${data}\n\n`);
+                }
+                return;
+            }
+        }
+
+        // Fallback para reload completo
         console.log(`📡 Notificando ${this.clients.size} clientes para recarregar...`);
         for (const client of this.clients) {
             client.write('data: reload\n\n');
@@ -136,7 +251,7 @@ export class HotServer {
 
     public start() {
         // Inicia Watcher
-        this.watcher.on('change', () => this.notifyClients());
+        this.watcher.on('change', (filePath: string) => this.notifyClients(filePath));
         this.watcher.start();
 
         const tryListen = (port: number) => {
