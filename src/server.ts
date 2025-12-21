@@ -1,10 +1,12 @@
 import http from 'node:http';
+import https from 'node:https';
 import fs from 'node:fs/promises';
 import { createReadStream, existsSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { exec } from 'node:child_process';
 import { Watcher } from './watcher';
 import { Config } from './validator';
+import { CertGenerator } from './cert-generator';
 
 // Script injetado no HTML para ouvir mudanças
 const INJECTED_SCRIPT = `
@@ -120,13 +122,14 @@ const MIME_TYPES: Record<string, string> = {
 };
 
 export class HotServer {
-    private clients: Set<http.ServerResponse> = new Set();
-    private server: http.Server;
+    private clients: Set<http.ServerResponse | https.ServerResponse> = new Set();
+    private server: http.Server | https.Server;
     private watcher: Watcher;
+    private isHttps: boolean = false;
 
     constructor(private config: Config) {
         this.watcher = new Watcher(config.root);
-        this.server = http.createServer(this.handleRequest.bind(this));
+        this.isHttps = config.https === 'true';
     }
 
     private async handleRequest(req: http.IncomingMessage, res: http.ServerResponse) {
@@ -168,17 +171,26 @@ export class HotServer {
         const ext = path.extname(filePath).toLowerCase();
         const mimeType = MIME_TYPES[ext] || 'application/octet-stream';
 
+        // Log detalhado de arquivos servidos
+        const relativePath = path.relative(this.config.root, filePath);
+        const fileSize = (await fs.stat(filePath)).size;
+        console.log(`📄 Servindo: ${relativePath} (${this.formatBytes(fileSize)}) [${mimeType}]`);
+
         // 3. Injeção de Script (apenas HTML)
         if (ext === '.html') {
             try {
                 let content = await fs.readFile(filePath, 'utf-8');
+
+                // Analisar e logar recursos do HTML
+                this.logHtmlResources(content, relativePath);
+
                 // Injeta antes de </body> ou no final se não tiver body
                 if (content.includes('</body>')) {
                     content = content.replace('</body>', `${INJECTED_SCRIPT}</body>`);
                 } else {
                     content += INJECTED_SCRIPT;
                 }
-                
+
                 res.writeHead(200, {
                     'Content-Type': 'text/html',
                     'Access-Control-Allow-Origin': '*',
@@ -186,9 +198,11 @@ export class HotServer {
                     'Access-Control-Allow-Headers': 'Content-Type'
                 });
                 res.end(content);
+                console.log(`🌐 HTML injetado com hot-reload: ${relativePath}`);
             } catch (err) {
                 res.writeHead(500);
                 res.end('Internal Server Error');
+                console.error(`❌ Erro ao servir HTML ${relativePath}:`, err);
             }
         } else {
             // Stream para arquivos binários ou grandes
@@ -244,15 +258,37 @@ export class HotServer {
     }
 
     private openBrowser() {
-        const url = `http://localhost:${this.config.port}`;
+        const protocol = this.isHttps ? 'https' : 'http';
+        const url = `${protocol}://localhost:${this.config.port}`;
         const start = (process.platform == 'darwin' ? 'open' : process.platform == 'win32' ? 'start' : 'xdg-open');
         exec(`${start} ${url}`);
     }
 
-    public start() {
+    public async start() {
         // Inicia Watcher
         this.watcher.on('change', (filePath: string) => this.notifyClients(filePath));
         this.watcher.start();
+
+        // Criar servidor HTTP ou HTTPS
+        if (this.isHttps) {
+            const certs = await CertGenerator.getCertPaths();
+            if (!certs) {
+                console.log('🔐 Gerando certificados auto-assinados...');
+                await CertGenerator.generateCerts();
+            }
+            const certPaths = await CertGenerator.getCertPaths();
+            if (certPaths) {
+                const options = {
+                    key: await fs.readFile(certPaths.keyPath),
+                    cert: await fs.readFile(certPaths.certPath)
+                };
+                this.server = https.createServer(options, this.handleRequest.bind(this));
+            } else {
+                throw new Error('Não foi possível gerar certificados HTTPS');
+            }
+        } else {
+            this.server = http.createServer(this.handleRequest.bind(this));
+        }
 
         const tryListen = (port: number) => {
             const onError = (err: any) => {
@@ -273,15 +309,18 @@ export class HotServer {
             this.server.listen(port, () => {
                 this.server.removeListener('error', onError);
                 this.config.port = port;
-                
+
+                const protocol = this.isHttps ? 'https' : 'http';
+                const lockEmoji = this.isHttps ? '🔒' : '🔓';
+
                 console.log(`
 🚀 Hot-Server rodando!
 -----------------------------------
 📂 Root:    ${this.config.root}
-🔗 Local:   http://localhost:${this.config.port}
+${lockEmoji} Local:   ${protocol}://localhost:${this.config.port}
 -----------------------------------
                 `);
-                
+
                 if (this.config.open === 'true') {
                     this.openBrowser();
                 }
@@ -289,5 +328,57 @@ export class HotServer {
         };
 
         tryListen(this.config.port);
+    }
+
+    private formatBytes(bytes: number): string {
+        if (bytes === 0) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    }
+
+    private logHtmlResources(htmlContent: string, htmlPath: string) {
+        const resources = [];
+
+        // CSS links
+        const cssMatches = htmlContent.match(/<link[^>]*href="([^"]*\.css[^"]*)"[^>]*>/gi);
+        if (cssMatches) {
+            cssMatches.forEach(match => {
+                const hrefMatch = match.match(/href="([^"]*\.css[^"]*)"/i);
+                if (hrefMatch) {
+                    resources.push({ type: 'CSS', path: hrefMatch[1] });
+                }
+            });
+        }
+
+        // JavaScript scripts
+        const jsMatches = htmlContent.match(/<script[^>]*src="([^"]*\.js[^"]*)"[^>]*><\/script>/gi);
+        if (jsMatches) {
+            jsMatches.forEach(match => {
+                const srcMatch = match.match(/src="([^"]*\.js[^"]*)"/i);
+                if (srcMatch) {
+                    resources.push({ type: 'JS', path: srcMatch[1] });
+                }
+            });
+        }
+
+        // Images
+        const imgMatches = htmlContent.match(/<img[^>]*src="([^"]*)"[^>]*>/gi);
+        if (imgMatches) {
+            imgMatches.forEach(match => {
+                const srcMatch = match.match(/src="([^"]*)"/i);
+                if (srcMatch) {
+                    resources.push({ type: 'IMG', path: srcMatch[1] });
+                }
+            });
+        }
+
+        if (resources.length > 0) {
+            console.log(`🔍 Recursos encontrados em ${htmlPath}:`);
+            resources.forEach(resource => {
+                console.log(`  ${resource.type === 'CSS' ? '🎨' : resource.type === 'JS' ? '📜' : '🖼️'} ${resource.path}`);
+            });
+        }
     }
 }

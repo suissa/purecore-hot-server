@@ -11,7 +11,11 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "ts-node src/index.ts",
-    "test": "jest"
+    "dev:https": "ts-node src/index.ts --https=true",
+    "test": "jest",
+    "certs:generate": "ts-node src/cert-generator.ts generate",
+    "certs:clean": "ts-node src/cert-generator.ts clean",
+    "certs:info": "ts-node src/cert-generator.ts info"
   },
   "keywords": [
     "http-server",

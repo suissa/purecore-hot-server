@@ -8,8 +8,10 @@ Um servidor de desenvolvimento hot-reload moderno e leve, construído com TypeSc
 - 🎯 **SPA Support**: Flag `--spa` para aplicações React/Vue/Angular
 - 📁 **MIME Types Robustos**: Suporte completo para vídeos, fontes, manifestos e mais
 - 🌐 **CORS Habilitado**: Acesso cross-origin para desenvolvimento
-- 🔒 **Zero Dependencies**: Apenas APIs nativas do Node.js
+- 🔒 **HTTPS Support**: Modo HTTPS com certificados auto-assinados
 - 📡 **Server-Sent Events**: Notificações em tempo real eficientes
+- 🔍 **Logs Detalhados**: Visualização de arquivos servidos e recursos HTML
+- 🔓🔒 **Indicadores Visuais**: Emojis de cadeado no terminal (aberto/fechado)
 
 ## 🚀 Instalação
 
@@ -18,6 +20,36 @@ npm install -g hot-server
 # ou
 bun install -g hot-server
 ```
+
+## 🔒 Modo HTTPS
+
+O Hot Server suporta HTTPS com certificados auto-assinados para desenvolvimento local.
+
+### Ativar HTTPS
+```bash
+# Via linha de comando
+hot-server --https=true
+
+# Via npm scripts
+npm run dev:https
+
+# Via bun
+bun run dev:https
+```
+
+### Gerenciamento de Certificados
+```bash
+# Gerar certificados auto-assinados
+npm run certs:generate
+
+# Ver informações dos certificados
+npm run certs:info
+
+# Limpar certificados existentes
+npm run certs:clean
+```
+
+**Nota**: Os certificados são salvos em `.hot-server-certs/` no diretório do projeto.
 
 ## 📖 Uso Básico
 
@@ -56,6 +88,7 @@ Rotas inexistentes (como `/usuarios/1`) automaticamente servem `index.html`, per
 | `--root=<path>` | Diretório raiz | `.` (diretório atual) |
 | `--open=<true/false>` | Abrir navegador automaticamente | `true` |
 | `--spa=<true/false>` | Habilitar suporte SPA | `false` |
+| `--https=<true/false>` | Habilitar modo HTTPS | `false` |
 
 ## 🏗️ Como foi feito
 
@@ -104,6 +137,19 @@ src/
 ### Teste CORS
 1. Acesse arquivos de outro domínio/origin
 2. Deve funcionar sem erros de CORS
+
+### Teste HTTPS
+1. Execute: `hot-server --https=true`
+2. Observe o emoji 🔒 no log do terminal
+3. Acesse https://localhost:9999
+4. Aceite o aviso de certificado auto-assinado
+
+### Teste Logs Detalhados
+1. Abra uma página HTML
+2. Observe no terminal:
+   - 📄 Arquivos servidos com tamanho e tipo MIME
+   - 🔍 Recursos encontrados no HTML (CSS, JS, imagens)
+   - 🌐 Confirmação de injeção do hot-reload
 
 ## 📊 Comparação com Live Server
 

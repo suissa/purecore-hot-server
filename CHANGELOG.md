@@ -1,3 +1,21 @@
+# Release v0.3.0
+
+### What's Changed
+* 🔒 Adicionado suporte completo a HTTPS com certificados auto-assinados
+* 🛠️ Criado sistema de geração automática de certificados SSL
+* 🔓🔒 Adicionados emojis visuais de cadeado no terminal (aberto HTTP / fechado HTTPS)
+* 📊 Implementados logs detalhados de arquivos servidos
+* 🔍 Adicionado parsing e logging de recursos HTML (CSS, JS, imagens)
+* 📄 Logs mostram tamanho dos arquivos e tipos MIME
+* 🌐 Logs especiais para arquivos HTML injetados com hot-reload
+* 📝 Scripts npm para gerenciamento de certificados (`certs:generate`, `certs:clean`, `certs:info`)
+* 🔧 Arquivo `cert-generator.ts` para geração programática de certificados
+
+### New Contributors
+* [Jean Carlo Machado](https://github.com/jeanCarloMachado) - Implementação do suporte HTTPS e sistema de logs avançado
+
+---
+
 # Release v0.2.0
 
 ### What's Changed

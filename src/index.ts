@@ -25,7 +25,8 @@ const rawConfig = {
     port: parseInt(getArg('port', '9999')),
     root: path.resolve(process.cwd(), rootArg),
     open: getArg('open', 'true'), // 'true' por padrão
-    spa: getArg('spa', 'false') // 'false' por padrão
+    spa: getArg('spa', 'false'), // 'false' por padrão
+    https: getArg('https', 'false') // 'false' por padrão
 };
 
 try {

@@ -44,7 +44,8 @@ export const configSchema = z.object({
   port: z.number(),
   root: z.string(),
   open: z.string(), // boolean as string 'true'/'false' simplificado para CLI
-  spa: z.string() // boolean as string 'true'/'false' para suporte SPA
+  spa: z.string(), // boolean as string 'true'/'false' para suporte SPA
+  https: z.string() // boolean as string 'true'/'false' para modo HTTPS
 });
 
 export type Config = ReturnType<typeof configSchema.parse>;
