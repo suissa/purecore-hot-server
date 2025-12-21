@@ -139,18 +139,40 @@ export class HotServer {
         this.watcher.on('change', () => this.notifyClients());
         this.watcher.start();
 
-        // Inicia HTTP Server
-        this.server.listen(this.config.port, () => {
-            console.log(`
+        const tryListen = (port: number) => {
+            const onError = (err: any) => {
+                if (err.code === 'EADDRINUSE') {
+                    console.log(`⚠️ Porta ${port} em uso, tentando ${port + 1}...`);
+                    // Garante que limpamos listeners antigos antes de tentar de novo
+                    this.server.removeListener('error', onError);
+                    this.server.close();
+                    tryListen(port + 1);
+                } else {
+                    console.error('❌ Erro ao iniciar servidor:', err);
+                    process.exit(1);
+                }
+            };
+
+            this.server.once('error', onError);
+
+            this.server.listen(port, () => {
+                this.server.removeListener('error', onError);
+                this.config.port = port;
+                
+                console.log(`
 🚀 Hot-Server rodando!
 -----------------------------------
 📂 Root:    ${this.config.root}
 🔗 Local:   http://localhost:${this.config.port}
 -----------------------------------
-            `);
-            if (this.config.open === 'true') {
-                this.openBrowser();
-            }
-        });
+                `);
+                
+                if (this.config.open === 'true') {
+                    this.openBrowser();
+                }
+            });
+        };
+
+        tryListen(this.config.port);
     }
 }
