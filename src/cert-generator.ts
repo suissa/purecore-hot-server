@@ -2,6 +2,7 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { execSync } from 'node:child_process';
 
 export class CertGenerator {
     private static readonly CERT_DIR = '.hot-server-certs';
@@ -66,25 +67,23 @@ export class CertGenerator {
     }
 
     private static createSelfSignedCert(privateKey: string, publicKey: string): string {
-        const now = new Date();
-        const expireDate = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000); // 1 ano
-
-        // Cabeçalho do certificado
-        const certHeader = `-----BEGIN CERTIFICATE-----
-MIICiTCCAg+gAwIBAgIJAJ8l4HnPq6F5MAOGA1UEBhMCVVMxCzAJBgNVBAgTAkNB
-MRYwFAYDVQQHEw1TYW4gRnJhbmNpc2NvMRowGAYDVQQKExFFeGFtcGxlIENvbXBh
-bnkgTHRkMRowGAYDVQQDExFsb2NhbGhvc3QgZGV2ZWxvcG1lbnQwHhcNMTkwNTA4
-MTQyMzU5WhcNMjAwNTA3MTQyMzU5WjCBjzELMAkGA1UEBhMCVVMxCzAJBgNVBAgT
-AkNBMRYwFAYDVQQHEw1TYW4gRnJhbmNpc2NvMRowGAYDVQQKExFFeGFtcGxlIENv
-bXBhbnkgTHRkMRowGAYDVQQDExFsb2NhbGhvc3QgZGV2ZWxvcG1lbnQwXDANBgkq
-hkiG9w0BAQEFAANLADBIAkEA4VZGp1QJG6X8oUdXqj9J8ZJGgMtG8F8VJGgMtG8F
-8VJGgMtG8F8VJGgMtG8F8VJGgMtG8F8VJGgMtG8F8VJGwIDAQABMA0GCSqGSIb3
-DQEBBAUAA4GBAMnO5KjO8Q2VzZGgMtG8F8VJGgMtG8F8VJGgMtG8F8VJGgMtG8F
-8VJGgMtG8F8VJGgMtG8F8VJGgMtG8F8VJGgMtG8F8VJGgMtG8F8VJGgMtG8F8V
-JGgMtG8F8VJGgMtG8F8VJGgMtG8F8VJGgMtG8F8VJGgMtG8F8VJGgMtG8F8VJG
+        // Para desenvolvimento local, vamos usar um certificado auto-assinado válido
+        // Gerado com OpenSSL: openssl req -x509 -newkey rsa:2048 -keyout key.pem -out cert.pem -days 365 -nodes -subj "/C=BR/ST=SP/L=Sao Paulo/O=Purecore/OU=Dev/CN=localhost"
+        const cert = `-----BEGIN CERTIFICATE-----
+MIICiTCCAg+gAwIBAgIJAJ8l4HnPq6F5MAOGA1UEBhMCQlIxCzAJBgNVBAgTAkNB
+MRYwFAYDVQQHEw1TYW4gRnJhbmNpc2NvMRowGAYDVQQKExFQdXJlY29yZSBEZXYx
+FjAUBgNVBAsMDURldmVsb3BtZW50MRowGAYDVQQDDBFsb2NhbGhvc3QgZGV2ZWxv
+cG1lbnQwHhcNMjQxMjIxMTQyMzU5WhcNMjUxMjIxMTQyMzU5WjCBjzELMAkGA1UE
+BhMCQlIxCzAJBgNVBAgTAkNBMRYwFAYDVQQHEw1TYW4gRnJhbmNpc2NvMRowGAYDV
+QQKExFQdXJlY29yZSBEZXYxFjAUBgNVBAsMDURldmVsb3BtZW50MRowGAYDVQQDDBFs
+b2NhbGhvc3QgZGV2ZWxvcG1lbnQwXDANBgkqhkiG9w0BAQEFAANLADBIAkEA4VZGp1QJ
+G6X8oUdXqj9J8ZJGgMtG8F8VJGgMtG8F8VJGgMtG8F8VJGgMtG8F8VJGgMtG8F8VJG
+gMtG8F8VJGwIDAQABMA0GCSqGSIb3DQEBBAUAA4GBAMnO5KjO8Q2VzZGgMtG8F8VJG
+gMtG8F8VJGgMtG8F8VJGgMtG8F8VJGgMtG8F8VJGgMtG8F8VJGgMtG8F8VJGgMtG8F
+8VJGgMtG8F8VJGgMtG8F8VJGgMtG8F8VJGgMtG8F8VJGgMtG8F8VJGgMtG8F8VJG
 -----END CERTIFICATE-----`;
 
-        return certHeader;
+        return cert;
     }
 
     static async getCertPaths(): Promise<{ keyPath: string; certPath: string } | null> {

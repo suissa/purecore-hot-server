@@ -19,7 +19,7 @@ const getArg = (key, defaultVal) => {
 const rootArg = args[0] && !args[0].startsWith('--') ? args[0] : '.';
 const rawConfig = {
     port: parseInt(getArg('port', '8080')),
-    root: node_path_1.default.resolve(process.cwd(), rootArg),
+    root: node_path_1.default.resolve(process.cwd(), rootArg), 
     open: getArg('open', 'true') // 'true' por padrão
 };
 try {
