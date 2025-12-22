@@ -30,25 +30,18 @@ export class CertGenerator {
 
             console.log('🔐 Gerando certificados auto-assinados...');
 
-            // Gerar chave privada
-            const { privateKey, publicKey } = crypto.generateKeyPairSync('rsa', {
-                modulusLength: 2048,
-                publicKeyEncoding: {
-                    type: 'spki',
-                    format: 'pem'
-                },
-                privateKeyEncoding: {
-                    type: 'pkcs8',
-                    format: 'pem'
-                }
-            });
+            // Observação importante:
+            // Gerar um X509 "de verdade" apenas com node:crypto (sem libs externas) não é trivial.
+            // Como este projeto roda no WSL, utilizamos o OpenSSL (toolchain padrão do Linux)
+            // para gerar um par key/cert PEM válido e compatível com Bun/BoringSSL.
+            await this.generateWithOpenSSL({ keyPath, certPath });
 
-            // Criar certificado auto-assinado
-            const cert = this.createSelfSignedCert(privateKey, publicKey);
-
-            // Salvar arquivos
-            await fs.writeFile(keyPath, privateKey, 'utf8');
-            await fs.writeFile(certPath, cert, 'utf8');
+            // Validação simples do PEM (evita subir servidor com arquivo corrompido)
+            const [keyPem, certPem] = await Promise.all([
+                fs.readFile(keyPath, 'utf8'),
+                fs.readFile(certPath, 'utf8')
+            ]);
+            this.validatePem({ keyPem, certPem, keyPath, certPath });
 
             console.log('✅ Certificados gerados com sucesso!');
             console.log('📁 Localização:', certDir);
@@ -84,6 +77,46 @@ gMtG8F8VJGgMtG8F8VJGgMtG8F8VJGgMtG8F8VJGgMtG8F8VJGgMtG8F8VJGgMtG8F
 -----END CERTIFICATE-----`;
 
         return cert;
+    }
+
+    private static generateWithOpenSSL(params: { keyPath: string; certPath: string }) {
+        const { keyPath, certPath } = params;
+        const subj = '/C=BR/ST=SP/L=Sao Paulo/O=Purecore/OU=Dev/CN=localhost';
+
+        // Preferimos SAN para evitar problemas em clients modernos.
+        // Nem todo OpenSSL antigo suporta -addext, então fazemos fallback.
+        const cmdWithSan =
+            `openssl req -x509 -newkey rsa:2048 ` +
+            `-keyout "${keyPath}" -out "${certPath}" ` +
+            `-days 365 -nodes -subj "${subj}" ` +
+            `-addext "subjectAltName=DNS:localhost,IP:127.0.0.1"`;
+
+        const cmdNoSan =
+            `openssl req -x509 -newkey rsa:2048 ` +
+            `-keyout "${keyPath}" -out "${certPath}" ` +
+            `-days 365 -nodes -subj "${subj}"`;
+
+        try {
+            execSync(cmdWithSan, { stdio: 'inherit' });
+        } catch {
+            execSync(cmdNoSan, { stdio: 'inherit' });
+        }
+    }
+
+    private static validatePem(params: { keyPem: string; certPem: string; keyPath: string; certPath: string }) {
+        const { keyPem, certPem, keyPath, certPath } = params;
+        const keyOk =
+            keyPem.includes('-----BEGIN PRIVATE KEY-----') ||
+            keyPem.includes('-----BEGIN RSA PRIVATE KEY-----');
+        const certOk = certPem.includes('-----BEGIN CERTIFICATE-----');
+
+        if (!keyOk || !certOk) {
+            throw new Error(
+                `PEM inválido gerado. ` +
+                `keyOk=${keyOk} certOk=${certOk}. ` +
+                `keyPath=${keyPath} certPath=${certPath}`
+            );
+        }
     }
 
     static async getCertPaths(): Promise<{ keyPath: string; certPath: string } | null> {

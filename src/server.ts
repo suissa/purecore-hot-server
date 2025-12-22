@@ -314,7 +314,7 @@ export class HotServer {
                 const lockEmoji = this.isHttps ? '🔒' : '🔓';
 
                 console.log(`
-🚀 Hot-Server rodando!
+🔥 Hot-Server rodando!
 -----------------------------------
 📂 Root:    ${this.config.root}
 ${lockEmoji} Local:   ${protocol}://localhost:${this.config.port}
