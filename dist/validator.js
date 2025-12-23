@@ -1,11 +1,8 @@
-"use strict";
 /**
  * Um mini-validador type-safe inspirado no Zod.
  * Garante que nossa configuração de entrada seja válida sem importar bibliotecas externas.
  */
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.configSchema = exports.z = exports.Schema = void 0;
-class Schema {
+export class Schema {
     validator;
     constructor(validator) {
         this.validator = validator;
@@ -14,8 +11,7 @@ class Schema {
         return this.validator(value);
     }
 }
-exports.Schema = Schema;
-exports.z = {
+export const z = {
     string: () => new Schema((val) => {
         if (typeof val !== 'string')
             throw new Error(`Expected string, received ${typeof val}`);
@@ -44,8 +40,10 @@ exports.z = {
     })
 };
 // Configuração Schema para o nosso servidor
-exports.configSchema = exports.z.object({
-    port: exports.z.number(),
-    root: exports.z.string(),
-    open: exports.z.string() // boolean as string 'true'/'false' simplificado para CLI
+export const configSchema = z.object({
+    port: z.number(),
+    root: z.string(),
+    open: z.string(), // boolean as string 'true'/'false' simplificado para CLI
+    spa: z.string(), // boolean as string 'true'/'false' para suporte SPA
+    https: z.string() // boolean as string 'true'/'false' para modo HTTPS
 });

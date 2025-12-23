@@ -8,12 +8,14 @@ Este documento analisa as diferenças técnicas e de funcionalidades entre a **S
 | :--- | :--- | :--- |
 | **Dependências** | Múltiplas (`send`, `fsevents`, `opn`, `connect`...) | **Zero (0)** (Apenas nativas do Node.js) |
 | **Linguagem** | JavaScript | **TypeScript** |
-| **Hot Reload** | Full Page + **CSS Injection** (sem refresh) | Full Page Reload (Sempre) |
+| **Hot Reload** | Full Page + **CSS Injection** (sem refresh) | Full Page + **CSS Injection** (sem refresh) |
 | **Watch System** | `chokidar` (geralmente) | `fs.watch` nativo (recursivo) |
-| **SPA Support** | Sim (redireciona 404 para index.html) | Não (retorna 404) |
+| **SPA Support** | Sim (redireciona 404 para index.html) | Sim (flag `--spa=true`) |
 | **Directory Listing** | Sim (mostra arquivos se não houver index) | Não (retorna erro/404) |
-| **HTTPS/Proxy** | Sim | Não |
+| **HTTPS/Proxy** | Sim | HTTPS: Sim (flag `--https=true`) / Proxy: Não |
 | **Middleware** | Sim (baseado em Connect) | Não |
+| **Extensão `.html` opcional** | Não (depende do arquivo/rota) | Sim (fallback para servir `.html` quando a URL vier sem extensão) |
+| **Compatível com `npx`/`npm i -g`** | Sim | Sim (via build `dist/` e campo `bin` no `package.json`) |
 
 ---
 
@@ -25,12 +27,12 @@ Este documento analisa as diferenças técnicas e de funcionalidades entre a **S
     * **Tamanho**: O projeto final é minúsculo comparado ao `live-server` e suas árvores de dependência.
 
 2. **Base de Código Moderna (TypeScript + Node 20+)**:
-    *   O código utiliza APIs modernas como `node:fs/promises`, `node:watch` (recursivo) e Typescript estrito.
-    *   É muito mais fácil para um desenvolvedor TS ler, entender e modificar o seu código do que o código legado JS do `live-server`.
+    * O código utiliza APIs modernas como `node:fs/promises`, `node:watch` (recursivo) e Typescript estrito.
+    * É muito mais fácil para um desenvolvedor TS ler, entender e modificar o seu código do que o código legado JS do `live-server`.
 
 3. **Simplicidade Arquitetural**:
-    *   Sua implementação de SSE (Server-Sent Events) é direta e transparente (`/_hot_server_sse`), sem dependência de bibliotecas complexas de socket.
-    *   Validação "Zod-like" interna (`validator.ts`) demonstra como fazer type-safety sem bibliotecas pesadas.
+    * Sua implementação de SSE (Server-Sent Events) é direta e transparente (`/_hot_server_sse`), sem dependência de bibliotecas complexas de socket.
+    * Validação "Zod-like" interna (`validator.ts`) demonstra como fazer type-safety sem bibliotecas pesadas.
 
 ---
 
@@ -41,28 +43,54 @@ Para igualar a funcionalidade, você precisaria implementar:
 ### 1. Injeção de CSS (CSS Hot Loading)
 
 * **O que é**: Quando um arquivo `.css` é salvo, o `live-server` atualiza apenas o estilo na página sem recarregar o navegador.
-* **Seu estado atual**: A sua lib dispara `window.location.reload()` para *qualquer* mudança de arquivo.
+* **Seu estado atual**: Implementado via SSE + troca de `href` com timestamp.
 * **Como implementar**: No script injetado, verificar se a mensagem do SSE é sobre um arquivo CSS e, nesse caso, buscar as tags `<link rel="stylesheet">` no DOM e forçar uma atualização do `href` (ex: `style.css?v=timestamp`) em vez de dar reload.
 
 ### 2. Suporte a SPA (Single Page Applications)
 
 * **O que é**: Frameworks como React/Vue (via Router) precisam que qualquer rota desconhecida (ex: `/usuarios/1`) retorne o `index.html` para que o JS no front assuma o controle.
-* **Seu estado atual**: Retorna 404 se o arquivo não existir.
-* **Como implementar**: Adicionar uma flag (ex: `--spa`) que, ao dar 404 na busca estática, serve o `index.html` com status 200.
+* **Seu estado atual**: Implementado via flag `--spa=true` (fallback para `index.html` quando o arquivo não existe).
 
 ### 3. Mime-Types Robustos
 
-* **O que falta**: Sua lista `MIME_TYPES` em `server.ts` é limitada. Arquivos como vídeos (`.mp4`), fontes (`.woff2`) ou manifestos podem não carregar corretamente.
+* **Seu estado atual**: Implementado com lista expandida de tipos (vídeos, fontes, manifestos, etc).
 
 ### 4. CORS
 
-* **O que falta**: Se o usuário tentar acessar seus arquivos de outro local (ex: um script em outro localhost tentando fazer fetch nos assets), falhará. Suas respostas de arquivos estáticos não enviam headers `Access-Control-Allow-Origin`.
+* **Seu estado atual**: Implementado com headers `Access-Control-Allow-*` nas respostas.
 
 ### 5. Directory e Range Requests
 
 * **O que falta**:
-    * **Listagem de pasta**: O `live-server` gera uma interface HTML listando os arquivos se você abrir uma pasta. O seu tenta abrir `index.html` e falha se não existir.
-    * **Range Requests**: Para fazer streaming de vídeo/áudio e permitir "pular" (seek) o vídeo, o servidor precisa suportar headers `Range` e `Content-Range`. O seu `createReadStream.pipe(res)` serve o arquivo inteiro, o que quebra alguns players de vídeo.
+  * **Listagem de pasta**: O `live-server` gera uma interface HTML listando os arquivos se você abrir uma pasta. O seu tenta abrir `index.html` e falha se não existir.
+  * **Range Requests**: Para fazer streaming de vídeo/áudio e permitir "pular" (seek) o vídeo, o servidor precisa suportar headers `Range` e `Content-Range`. O seu `createReadStream.pipe(res)` serve o arquivo inteiro, o que quebra alguns players de vídeo.
+
+---
+
+## 🔒 HTTPS (nota prática no WSL)
+
+O `purecore-hot-server` suporta HTTPS com certificados auto-assinados para desenvolvimento local.
+
+* **Gerar/limpar/inspecionar certs**:
+
+```bash
+bun run certs:clean
+bun run certs:generate
+bun run certs:info
+```
+
+* **Iniciar em HTTPS**:
+
+```bash
+bun run dev:https
+# equivalente:
+bun run src/index.ts --https=true
+```
+
+**Referências**:
+
+* Campo `bin` do npm (execução via `npx`/instalação global): `https://docs.npmjs.com/cli/v10/configuring-npm/package-json#bin`
+* Node.js ESM/CJS (impacta como o `dist/` roda no Node): `https://nodejs.org/api/packages.html`
 
 ---
 

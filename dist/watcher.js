@@ -1,29 +1,23 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.Watcher = void 0;
-const node_fs_1 = __importDefault(require("node:fs"));
-const node_path_1 = __importDefault(require("node:path"));
-const node_events_1 = require("node:events");
-class Watcher extends node_events_1.EventEmitter {
+import fs from 'node:fs';
+import path from 'node:path';
+import { EventEmitter } from 'node:events';
+export class Watcher extends EventEmitter {
     root;
     timeout = null;
     watcher = null;
     constructor(root) {
         super();
-        this.root = node_path_1.default.resolve(root);
+        this.root = path.resolve(root);
     }
     start() {
-        if (!node_fs_1.default.existsSync(this.root)) {
+        if (!fs.existsSync(this.root)) {
             console.error(`❌ Diretório não encontrado: ${this.root}`);
             return;
         }
         try {
             // Recursive watch é suportado na maioria dos OS modernos Node v20+
             // No Linux pode ter limitações dependendo do FS, mas para dev local funciona bem.
-            this.watcher = node_fs_1.default.watch(this.root, { recursive: true }, (eventType, filename) => {
+            this.watcher = fs.watch(this.root, { recursive: true }, (eventType, filename) => {
                 if (filename && !this.isIgnored(filename.toString())) {
                     this.debounceChange(filename.toString());
                 }
@@ -34,7 +28,7 @@ class Watcher extends node_events_1.EventEmitter {
             console.error("Erro ao iniciar watcher:", err);
             // Fallback para não-recursivo se falhar (ex: Linux kernels antigos)
             console.warn("⚠️ Fallback para watcher não recursivo.");
-            this.watcher = node_fs_1.default.watch(this.root, (event, filename) => {
+            this.watcher = fs.watch(this.root, (event, filename) => {
                 if (filename)
                     this.debounceChange(filename.toString());
             });
@@ -62,4 +56,3 @@ class Watcher extends node_events_1.EventEmitter {
         }
     }
 }
-exports.Watcher = Watcher;

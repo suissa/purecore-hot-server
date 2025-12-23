@@ -1,6 +1,6 @@
 {
   "name": "hot-server",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Zero dependency modern hot-reload server replacement",
   "main": "dist/index.js",
   "type": "module",
@@ -25,11 +25,9 @@
     "zero-dependency"
   ],
   "author": "Suissa",
-  "license": "MIT",
+  "license": "CEL",
   "devDependencies": {
-    "@types/jest": "^29.5.12",
     "@types/node": "^20.11.0",
-    "jest": "^29.7.0",
     "ts-jest": "^29.1.2",
     "typescript": "^5.3.3"
   },

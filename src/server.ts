@@ -4,9 +4,9 @@ import fs from 'node:fs/promises';
 import { createReadStream, existsSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { exec } from 'node:child_process';
-import { Watcher } from './watcher';
-import { Config } from './validator';
-import { CertGenerator } from './cert-generator';
+import { Watcher } from './watcher.js';
+import { Config } from './validator.js';
+import { CertGenerator } from './cert-generator.js';
 
 // Script injetado no HTML para ouvir mudanças
 const INJECTED_SCRIPT = `
@@ -93,7 +93,7 @@ const MIME_TYPES: Record<string, string> = {
     // Áudios
     '.mp3': 'audio/mpeg',
     '.wav': 'audio/wav',
-    '.ogg': 'audio/ogg',
+    '.oga': 'audio/ogg',
     '.aac': 'audio/aac',
     '.m4a': 'audio/m4a',
     '.opus': 'audio/opus',
@@ -122,8 +122,8 @@ const MIME_TYPES: Record<string, string> = {
 };
 
 export class HotServer {
-    private clients: Set<http.ServerResponse | https.ServerResponse> = new Set();
-    private server: http.Server | https.Server;
+    private clients: Set<http.ServerResponse> = new Set();
+    private server!: http.Server | https.Server;
     private watcher: Watcher;
     private isHttps: boolean = false;
 
@@ -140,17 +140,44 @@ export class HotServer {
         }
 
         // 2. Servir Arquivos Estáticos
-        let filePath = path.join(this.config.root, req.url === '/' ? 'index.html' : req.url || 'index.html');
+        const urlRaw = req.url || '/';
+        const urlPathOnly = urlRaw.split('?')[0];
+
+        let filePath = path.join(this.config.root, urlPathOnly === '/' ? 'index.html' : urlPathOnly);
         
         // Remove query params
         filePath = filePath.split('?')[0];
 
         // Se for diretório, tenta index.html
         if (existsSync(filePath) && statSync(filePath).isDirectory()) {
-            filePath = path.join(filePath, 'index.html');
+            const indexPath = path.join(filePath, 'index.html');
+            if (existsSync(indexPath)) {
+                filePath = indexPath;
+            } else {
+                // Directory listing (UI preta com cards)
+                await this.serveDirectoryListing({
+                    dirPath: filePath,
+                    requestPath: urlPathOnly,
+                    res
+                });
+                return;
+            }
         }
 
         if (!existsSync(filePath)) {
+            // Fallback: se URL não tem extensão, tenta .html e /index.html
+            // Ex: /sobre -> /sobre.html, /sobre/index.html
+            const hasExt = path.extname(urlPathOnly) !== '';
+            if (!hasExt && urlPathOnly !== '/' && !urlPathOnly.endsWith('/')) {
+                const htmlCandidate = path.join(this.config.root, `${urlPathOnly}.html`);
+                const dirIndexCandidate = path.join(this.config.root, urlPathOnly, 'index.html');
+                if (existsSync(htmlCandidate)) {
+                    filePath = htmlCandidate;
+                } else if (existsSync(dirIndexCandidate)) {
+                    filePath = dirIndexCandidate;
+                }
+            }
+
             // Suporte SPA: se arquivo não existe, tenta servir index.html
             if (this.config.spa === 'true') {
                 const indexPath = path.join(this.config.root, 'index.html');
@@ -339,7 +366,7 @@ ${lockEmoji} Local:   ${protocol}://localhost:${this.config.port}
     }
 
     private logHtmlResources(htmlContent: string, htmlPath: string) {
-        const resources = [];
+        const resources: Array<{ type: 'CSS' | 'JS' | 'IMG'; path: string }> = [];
 
         // CSS links
         const cssMatches = htmlContent.match(/<link[^>]*href="([^"]*\.css[^"]*)"[^>]*>/gi);
@@ -380,5 +407,204 @@ ${lockEmoji} Local:   ${protocol}://localhost:${this.config.port}
                 console.log(`  ${resource.type === 'CSS' ? '🎨' : resource.type === 'JS' ? '📜' : '🖼️'} ${resource.path}`);
             });
         }
+    }
+
+    private async serveDirectoryListing(params: {
+        dirPath: string;
+        requestPath: string;
+        res: http.ServerResponse;
+    }) {
+        const { dirPath, requestPath, res } = params;
+
+        // Normaliza paths para links
+        const basePath = requestPath.endsWith('/') ? requestPath : `${requestPath}/`;
+
+        const entries = await fs.readdir(dirPath, { withFileTypes: true });
+        const items = entries
+            .filter(e => e.name !== '.DS_Store')
+            .sort((a, b) => {
+                // Pastas primeiro
+                if (a.isDirectory() && !b.isDirectory()) return -1;
+                if (!a.isDirectory() && b.isDirectory()) return 1;
+                return a.name.localeCompare(b.name);
+            })
+            .map(e => {
+                const isDir = e.isDirectory();
+                const name = e.name;
+                const href = `${basePath}${encodeURIComponent(name)}${isDir ? '/' : ''}`;
+                const icon = isDir ? '📁' : this.getFileIconByName(name);
+                const type = isDir ? 'Pasta' : (path.extname(name).slice(1).toUpperCase() || 'FILE');
+                return { name, href, icon, type, isDir };
+            });
+
+        const parentHref = basePath !== '/' ? '../' : null;
+
+        const html = `<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Index of ${this.escapeHtml(requestPath)}</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #000;
+        --card: #0b0b0b;
+        --border: rgba(255,255,255,.10);
+        --text: rgba(255,255,255,.92);
+        --muted: rgba(255,255,255,.62);
+        --hover: rgba(255,255,255,.06);
+        --shadow: 0 10px 30px rgba(0,0,0,.45);
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+      }
+      .wrap {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      header {
+        display: flex;
+        gap: 12px;
+        align-items: baseline;
+        justify-content: space-between;
+        margin-bottom: 16px;
+      }
+      h1 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 650;
+        letter-spacing: .2px;
+      }
+      .path {
+        color: var(--muted);
+        font-size: 13px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 60vw;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 12px;
+      }
+      a.card {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        text-decoration: none;
+        color: inherit;
+        padding: 14px 14px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: var(--card);
+        box-shadow: var(--shadow);
+        transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
+        will-change: transform;
+      }
+      a.card:hover {
+        transform: translateY(-2px);
+        border-color: rgba(255,255,255,.22);
+        background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+      }
+      .icon {
+        width: 38px;
+        height: 38px;
+        display: grid;
+        place-items: center;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: rgba(255,255,255,.03);
+        flex: 0 0 auto;
+        font-size: 18px;
+      }
+      .meta { min-width: 0; }
+      .name {
+        font-size: 14px;
+        font-weight: 600;
+        line-height: 1.25;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 100%;
+      }
+      .type {
+        margin-top: 3px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .back {
+        margin: 14px 0 0;
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .back a { color: var(--text); text-decoration: none; border-bottom: 1px dotted rgba(255,255,255,.25); }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <h1>Directory listing</h1>
+        <div class="path">${this.escapeHtml(requestPath)}</div>
+      </header>
+
+      <div class="grid">
+        ${parentHref ? `<a class="card" href="${parentHref}"><div class="icon">↩</div><div class="meta"><div class="name">..</div><div class="type">Voltar</div></div></a>` : ''}
+        ${items.map(i => `
+          <a class="card" href="${i.href}">
+            <div class="icon">${i.icon}</div>
+            <div class="meta">
+              <div class="name">${this.escapeHtml(i.name)}${i.isDir ? '/' : ''}</div>
+              <div class="type">${this.escapeHtml(i.type)}</div>
+            </div>
+          </a>
+        `.trim()).join('')}
+      </div>
+
+      <div class="back">
+        Servido por <strong>purecore-hot-server</strong>
+      </div>
+    </div>
+  </body>
+</html>`;
+
+        res.writeHead(200, {
+            'Content-Type': 'text/html; charset=utf-8',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type'
+        });
+        res.end(html);
+        console.log(`📁 Directory listing: ${path.relative(this.config.root, dirPath)}`);
+    }
+
+    private getFileIconByName(fileName: string): string {
+        const ext = path.extname(fileName).toLowerCase();
+        if (ext === '.html' || ext === '.htm') return '🌐';
+        if (ext === '.css') return '🎨';
+        if (ext === '.js' || ext === '.mjs' || ext === '.ts') return '📜';
+        if (ext === '.json' || ext === '.yaml' || ext === '.yml' || ext === '.toml') return '🧩';
+        if (ext === '.md' || ext === '.txt') return '📝';
+        if (['.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.bmp', '.tif', '.tiff', '.ico'].includes(ext)) return '🖼️';
+        if (['.mp4', '.webm', '.mov', '.avi', '.wmv', '.flv', '.mkv', '.ogg'].includes(ext)) return '🎞️';
+        if (['.mp3', '.wav', '.m4a', '.aac', '.opus', '.oga'].includes(ext)) return '🎵';
+        if (['.zip', '.tar', '.gz', '.gzip'].includes(ext)) return '🗜️';
+        if (ext === '.pdf') return '📄';
+        return '📄';
+    }
+
+    private escapeHtml(input: string): string {
+        return input
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#039;');
     }
 }
