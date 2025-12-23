@@ -163,6 +163,27 @@ src/
 | **CORS** | ❌ Não | ✅ Sim |
 | **Installation** | Lento | ✅ Instantâneo |
 
+## 🔍 Análise de Dependências Obsoletas
+
+Durante o desenvolvimento, analisamos dependências comuns em servidores de desenvolvimento e identificamos quais são desnecessárias no Node.js moderno:
+
+### ❌ Dependências Obsoletas
+- **`object-assign`**: Substituído por `Object.assign()` nativo
+- **`http-auth`**: Autenticação HTTP pode ser feita nativamente
+- **`colors`**: Node.js 20+ tem `util.styleText()` nativo
+- **`opn`**: `child_process` nativo abre URLs/arquivos
+- **`event-stream`**: ⚠️ Vulnerabilidade conhecida, usar streams nativos
+
+### ⚡ Alternativas Nativas Utilizadas
+- **File System**: `node:fs` com `fs.watch()` recursivo
+- **HTTP Server**: `node:http` e `node:https` nativos
+- **Crypto**: `node:crypto` para certificados HTTPS
+- **Path/URL**: `node:path` e `node:url` para manipulação
+- **Streams**: `node:stream` para Server-Sent Events
+
+### 🎯 Resultado
+**Zero dependências externas** = instalação instantânea, sem vulnerabilidades de terceiros, e compatibilidade garantida com futuras versões do Node.js.
+
 ## 📝 Changelog
 
 Veja todas as mudanças em [CHANGELOG.md](CHANGELOG.md)
