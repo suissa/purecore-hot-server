@@ -153,15 +153,15 @@ src/
 
 ## 📊 Comparação com Live Server
 
-| Feature | Live Server | Purecore Hot Server |
-|---------|-------------|-------------------|
-| **Dependencies** | Múltiplas | ❌ Zero |
-| **Language** | JavaScript | ✅ TypeScript |
-| **CSS Injection** | ✅ Sim | ✅ Sim |
-| **SPA Support** | ✅ Sim | ✅ Sim |
-| **MIME Types** | Básicos | ✅ Robustos |
-| **CORS** | ❌ Não | ✅ Sim |
-| **Installation** | Lento | ✅ Instantâneo |
+| Feature           | Live Server | Purecore Hot Server |
+|-------------------|-------------|---------------------|
+| **Dependencies**  | Múltiplas   | ❌ Zero              |
+| **Language**      | JavaScript  | ✅ TypeScript        |
+| **CSS Injection** | ✅ Sim       | ✅ Sim               |
+| **SPA Support**   | ✅ Sim       | ✅ Sim               |
+| **MIME Types**    | Básicos     | ✅ Robustos          |
+| **CORS**          | ❌ Não       | ✅ Sim               |
+| **Installation**  | Lento       | ✅ Instantâneo       |
 
 ## 🔍 Análise de Dependências Obsoletas
 
