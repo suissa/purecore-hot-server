@@ -21,7 +21,7 @@ else {
     // Se o primeiro argumento não tiver --, assumimos que é a pasta
     const rootArg = args[0] && !args[0].startsWith("--") ? args[0] : ".";
     const rawConfig = {
-        port: parseInt(getArg("port", "6000")),
+        port: parseInt(getArg("port", "7000")),
         root: path.resolve(process.cwd(), rootArg),
         open: getArg("open", "true"), // 'true' por padrão
         spa: getArg("spa", "false"), // 'false' por padrão
