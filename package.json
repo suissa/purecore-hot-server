@@ -1,6 +1,6 @@
 {
   "name": "@purecore/one-server-4-all",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Zero dependency modern hot-reload server replacement",
   "main": "dist/index.js",
   "type": "module",
