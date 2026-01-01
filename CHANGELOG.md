@@ -1,3 +1,11 @@
+# Release v0.5.1
+
+### What's Changed
+
+- 🐛 Correção no comando PM2 gerado para usar `npx one-server-4-all` em vez de caminho local
+
+---
+
 # Release v0.5.0
 
 ### What's Changed
