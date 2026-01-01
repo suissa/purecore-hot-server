@@ -1,3 +1,12 @@
+# Release v0.3.2
+
+### What's Changed
+
+- 🔧 Alterada porta padrão de `9999` para `6000`
+- 📝 Atualizado relatório de modificações
+
+---
+
 # Release v0.3.1
 
 ### What's Changed
