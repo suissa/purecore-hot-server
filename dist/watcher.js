@@ -1,6 +1,6 @@
-import fs from 'node:fs';
-import path from 'node:path';
-import { EventEmitter } from 'node:events';
+import fs from "node:fs";
+import path from "node:path";
+import { EventEmitter } from "node:events";
 export class Watcher extends EventEmitter {
     root;
     timeout = null;
@@ -14,31 +14,31 @@ export class Watcher extends EventEmitter {
             console.error(`❌ Diretório não encontrado: ${this.root}`);
             return;
         }
-        try {
-            // Recursive watch é suportado na maioria dos OS modernos Node v20+
-            // No Linux pode ter limitações dependendo do FS, mas para dev local funciona bem.
-            this.watcher = fs.watch(this.root, { recursive: true }, (eventType, filename) => {
-                if (filename && !this.isIgnored(filename.toString())) {
-                    this.debounceChange(filename.toString());
-                }
-            });
-            console.log(`👀 Observando mudanças em: ${this.root}`);
-        }
-        catch (err) {
-            console.error("Erro ao iniciar watcher:", err);
-            // Fallback para não-recursivo se falhar (ex: Linux kernels antigos)
-            console.warn("⚠️ Fallback para watcher não recursivo.");
-            this.watcher = fs.watch(this.root, (event, filename) => {
-                if (filename)
-                    this.debounceChange(filename.toString());
-            });
-        }
+        console.log(`👀 Observando mudanças em: ${this.root}`);
+        // Inicia o watcher de forma assíncrona para não bloquear a inicialização do servidor
+        // Isso é crítico no WSL onde fs.watch recursivo pode demorar segundos
+        setImmediate(() => {
+            try {
+                this.watcher = fs.watch(this.root, { recursive: true }, (eventType, filename) => {
+                    if (filename && !this.isIgnored(filename.toString())) {
+                        this.debounceChange(filename.toString());
+                    }
+                });
+            }
+            catch (err) {
+                console.warn("⚠️ Fallback para watcher não recursivo.");
+                this.watcher = fs.watch(this.root, (event, filename) => {
+                    if (filename)
+                        this.debounceChange(filename.toString());
+                });
+            }
+        });
     }
     isIgnored(filename) {
         // Ignorar node_modules e arquivos ocultos (.git, etc)
-        return filename.includes('node_modules') ||
-            filename.includes('.git') ||
-            filename.endsWith('.tmp');
+        return (filename.includes("node_modules") ||
+            filename.includes(".git") ||
+            filename.endsWith(".tmp"));
     }
     debounceChange(filename) {
         // Evita múltiplos disparos (ex: salvar arquivo dispara 2 eventos 'change' e 'rename')
@@ -46,7 +46,7 @@ export class Watcher extends EventEmitter {
             clearTimeout(this.timeout);
         this.timeout = setTimeout(() => {
             console.log(`🔄 Arquivo alterado: ${filename}`);
-            this.emit('change', filename);
+            this.emit("change", filename);
         }, 100); // 100ms debounce
     }
     stop() {
