@@ -45,9 +45,9 @@ export class Deployer {
     const port =
       (await this.question(
         `  ${cyan("➜")} ${bold("Qual a porta do servidor?")} ${gray(
-          "(padrão 6000)"
+          "(padrão 8080)"
         )}\n    ${green("❯")} `
-      )) || "6000";
+      )) || "8080";
 
     const confirmNginx = await this.question(
       `  ${cyan("➜")} ${bold(

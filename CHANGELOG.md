@@ -1,3 +1,11 @@
+# Release v0.5.2
+
+### What's Changed
+
+- 🚑 Alterada porta padrão de `6000` para `8080` (fix ERR_UNSAFE_PORT em browsers)
+
+---
+
 # Release v0.5.1
 
 ### What's Changed
