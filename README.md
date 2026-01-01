@@ -1,4 +1,6 @@
-# Purecore Hot Server
+<p align="center">
+<img src="https://i.imgur.com/JI3gfOB.png" alt="Purecore one-server-4-all">
+</p>
 
 Um servidor de desenvolvimento hot-reload moderno e leve, construído com TypeScript e **zero dependências externas**.
 
@@ -23,7 +25,7 @@ bun install -g one-server-4-all
 
 ## 🔒 Modo HTTPS
 
-O Hot Server suporta HTTPS com certificados auto-assinados para desenvolvimento local.
+O one-server-4-all suporta HTTPS com certificados auto-assinados para desenvolvimento local.
 
 ### Ativar HTTPS
 
@@ -168,15 +170,15 @@ src/
 
 ## 📊 Comparação com Live Server
 
-| Feature           | Live Server | Purecore Hot Server |
-| ----------------- | ----------- | ------------------- |
-| **Dependencies**  | Múltiplas   | ❌ Zero             |
-| **Language**      | JavaScript  | ✅ TypeScript       |
-| **CSS Injection** | ✅ Sim      | ✅ Sim              |
-| **SPA Support**   | ✅ Sim      | ✅ Sim              |
-| **MIME Types**    | Básicos     | ✅ Robustos         |
-| **CORS**          | ❌ Não      | ✅ Sim              |
-| **Installation**  | Lento       | ✅ Instantâneo      |
+| Feature           | Live Server | Purecore one-server-4-all |
+| ----------------- | ----------- | ------------------------- |
+| **Dependencies**  | Múltiplas   | ❌ Zero                   |
+| **Language**      | JavaScript  | ✅ TypeScript             |
+| **CSS Injection** | ✅ Sim      | ✅ Sim                    |
+| **SPA Support**   | ✅ Sim      | ✅ Sim                    |
+| **MIME Types**    | Básicos     | ✅ Robustos               |
+| **CORS**          | ❌ Não      | ✅ Sim                    |
+| **Installation**  | Lento       | ✅ Instantâneo            |
 
 ## 🔍 Análise de Dependências Obsoletas
 
