@@ -69,18 +69,18 @@ export class Deployer {
     const name = domain.split(".")[0];
 
     // Monta o comando PM2
-    // Usamos npx para garantir que rode o pacote instalado ou baixe se necessário
-    // A sintaxe para PM2 rodar executáveis arbitrários requer 'pm2 start "cmd" --name ...' ou usar o interpreter
+    // Quando Nginx+Certbot está configurado, o Nginx faz terminação SSL
+    // O server roda em HTTP simples (Nginx faz proxy_pass http://localhost:porta)
+    // Argumentos devem estar DENTRO das aspas para PM2 processar corretamente
 
-    let pm2Command = `pm2 start "npx one-server-4-all" --name "${domain}" -- --port=${port} --open=false`;
+    let pm2Command: string;
 
     if (certPaths.key && certPaths.cert) {
-      // Nota: Node node pode não ter permissão de ler /etc/letsencrypt diretamente dependendo do user
-      // Mas vamos atender o pedido de colocar o caminho
-      pm2Command += ` --https=true --ssl-key="${certPaths.key}" --ssl-cert="${certPaths.cert}"`;
+      // Com Nginx+Certbot: server roda HTTP, Nginx cuida do SSL
+      pm2Command = `pm2 start "npx vai-server --port=${port} --open=false" --name "${domain}"`;
     } else {
-      // Se nao tem certbot, roda http normal (ou auto-assinado se forcer https)
-      pm2Command += ` --https=false`;
+      // Sem Nginx: pode rodar HTTPS auto-assinado ou HTTP
+      pm2Command = `pm2 start "npx vai-server --port=${port} --open=false" --name "${domain}"`;
     }
 
     console.log(`\n  ${bold("📦 Configuração Final:")}`);
