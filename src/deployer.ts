@@ -22,7 +22,7 @@ export class Deployer {
 
   private printBanner() {
     console.log(
-      `\n  ${bold(magenta("🚀 HOT-SERVER DEPLOYER"))} ${gray("v0.3.2")}`
+      `\n  ${bold(magenta("🚀 HOT-SERVER DEPLOYER"))} ${gray("v0.4.0")}`
     );
     console.log(`  ${gray("─────────────────────────────────────────")}\n`);
   }
@@ -49,36 +49,63 @@ export class Deployer {
         )}\n    ${green("❯")} `
       )) || "6000";
 
-    const name = domain.split(".")[0];
-
-    const pm2Command = `pm2 start dist/index.js --name "${domain}" -- --port=${port} --https=true --open=false`;
-
-    console.log(`\n  ${bold("📦 Configuração Gerada:")}`);
-    console.log(`  ${gray("────────────────────────")}`);
-    console.log(`  ${bold("Dominio:")} ${cyan(domain)}`);
-    console.log(`  ${bold("Porta:")}   ${cyan(port)}`);
-    console.log(`  ${bold("PM2:")}     ${yellow(pm2Command)}`);
-    console.log(`  ${gray("────────────────────────")}\n`);
-
-    const confirm = await this.question(
+    const confirmNginx = await this.question(
       `  ${cyan("➜")} ${bold(
         "Deseja configurar Nginx + SSL (Certbot) agora?"
       )} ${gray("(s/n)")}\n    ${green("❯")} `
     );
 
-    if (confirm.toLowerCase() === "s") {
-      await this.setupNginx(domain, port);
+    let certPaths = { key: "", cert: "" };
+
+    if (confirmNginx.toLowerCase() === "s") {
+      const success = await this.setupNginx(domain, port);
+      if (success) {
+        // Caminhos padrão do Certbot
+        certPaths.key = `/etc/letsencrypt/live/${domain}/privkey.pem`;
+        certPaths.cert = `/etc/letsencrypt/live/${domain}/fullchain.pem`;
+      }
     }
 
-    console.log(`\n  ${bold(green("✨ Deploy concluído com sucesso!"))}`);
-    console.log(`  ${gray("Próximo passo sugerido:")} ${yellow(pm2Command)}\n`);
+    const name = domain.split(".")[0];
+
+    // Monta o comando PM2
+    // Se temos certificados do Certbot e o usuário quer usar no node direto (embora com nginx proxy não precise necessariamente)
+    // O user pediu para "ter o caminho para apontar para eles".
+    // Vamos gerar o comando COM os certificados se eles existirem, e setar https=true
+
+    let pm2Command = `pm2 start dist/index.js --name "${domain}" -- --port=${port} --open=false`;
+
+    if (certPaths.key && certPaths.cert) {
+      // Nota: Node node pode não ter permissão de ler /etc/letsencrypt diretamente dependendo do user
+      // Mas vamos atender o pedido de colocar o caminho
+      pm2Command += ` --https=true --ssl-key="${certPaths.key}" --ssl-cert="${certPaths.cert}"`;
+    } else {
+      // Se nao tem certbot, roda http normal (ou auto-assinado se forcer https)
+      pm2Command += ` --https=false`;
+    }
+
+    console.log(`\n  ${bold("📦 Configuração Final:")}`);
+    console.log(`  ${gray("────────────────────────")}`);
+    console.log(`  ${bold("Dominio:")} ${cyan(domain)}`);
+    console.log(`  ${bold("Porta:")}   ${cyan(port)}`);
+    if (certPaths.key) {
+      console.log(`  ${bold("SSL:")}     ${green("Configurado via Certbot")}`);
+    }
+    console.log(`  ${bold("PM2:")}     ${yellow(pm2Command)}`);
+    console.log(`  ${gray("────────────────────────")}\n`);
+
+    console.log(`  ${bold(green("✨ Deploy concluído com sucesso!"))}`);
+    console.log(
+      `  ${gray("Copie e execute o comando acima para iniciar o servidor.")}\n`
+    );
 
     this.rl.close();
   }
 
-  private async setupNginx(domain: string, port: string) {
+  private async setupNginx(domain: string, port: string): Promise<boolean> {
     console.log(`\n  ${bold("🛠️  Iniciando configuração Nginx...")}`);
 
+    // Configuração inicial HTTP para o Certbot validar
     const nginxConfig = `
 server {
     listen 80;
@@ -92,13 +119,6 @@ server {
         proxy_set_header Host $host;
         proxy_cache_bypass $http_upgrade;
     }
-}
-
-server {
-    listen 80;
-    server_name ${domain};
-
-    return 301 https://$host$request_uri;
 }
 `;
 
@@ -118,28 +138,33 @@ server {
       console.log(`  ${gray("➜")} Testando configuração do Nginx...`);
       await this.runCommand(`sudo nginx -t`);
 
-      console.log(`  ${gray("➜")} Criando link simbólico...`);
+      console.log(`  ${gray("➜")} Ativando site...`);
       await this.runCommand(`sudo ln -sf ${sitesAvailable} ${sitesEnabled}`);
 
       console.log(`  ${gray("➜")} Recarregando Nginx...`);
       await this.runCommand(`sudo systemctl reload nginx`);
 
-      console.log(`  ${gray("➜")} Solicitando certificado SSL (Certbot)...`);
-      console.log(`  ${yellow("⚠ Aguarde a interação do Certbot...")}`);
-      // Usamos spawn ou deixamos o exec lidar, mas certbot é interativo
-      // Para simplificar, usamos --nginx -n (non-interactive) ou deixamos o usuário ver
+      console.log(`  ${gray("➜")} Executando Certbot...`);
+      console.log(`  ${yellow("⚠ Aguarde...")}`);
+
+      // Roda certbot e pede para ele configurar o redirect HTTPS no Nginx automaticamente
       await this.runCommand(
-        `sudo certbot --nginx -d ${domain} --non-interactive --agree-tos -m admin@${domain
+        `sudo certbot --nginx -d ${domain} --non-interactive --agree-tos --redirect -m admin@${domain
           .split(".")
           .slice(-2)
           .join(".")}`
       );
 
-      console.log(`  ${green("✔")} Nginx e SSL configurados!`);
+      console.log(`  ${green("✔")} Nginx e SSL configurados com sucesso!`);
+      return true;
     } catch (error: any) {
       console.error(
         `\n  ${yellow("❌ Erro na configuração:")} ${error.message}`
       );
+      console.log(
+        `  ${gray("Continuando apenas com a geração do comando...")}`
+      );
+      return false;
     }
   }
 
