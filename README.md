@@ -7,10 +7,11 @@ Um servidor de desenvolvimento hot-reload moderno e leve, construído com TypeSc
 ## ✨ Funcionalidades
 
 - 🚀 **Hot Reload Inteligente**: CSS injection sem recarregar página + full reload para outros arquivos
-- 🎯 **SPA Support**: Flag `--spa` para aplicações React/Vue/Angular
+- 📜 **SPA Support**: Flag `--spa` para aplicações React/Vue/Angular
 - 📁 **MIME Types Robustos**: Suporte completo para vídeos, fontes, manifestos e mais
 - 🌐 **CORS Habilitado**: Acesso cross-origin para desenvolvimento
 - 🔒 **HTTPS Support**: Modo HTTPS com certificados auto-assinados
+- ⚡ **Deploy Interativo**: Comando `deploy` com Nginx + Certbot + PM2 configurados automaticamente
 - 📡 **Server-Sent Events**: Notificações em tempo real eficientes
 - 🔍 **Logs Detalhados**: Visualização de arquivos servidos e recursos HTML
 - 🔓🔒 **Indicadores Visuais**: Emojis de cadeado no terminal (aberto/fechado)
@@ -87,6 +88,60 @@ Rotas inexistentes (como `/usuarios/1`) automaticamente servem `index.html`, per
 - **Imagens**: PNG, JPG, GIF, SVG, WebP, BMP, TIFF
 - **Documentos**: PDF, CSV, YAML, TOML, TXT, MD
 - **Web**: JSON, XML, Manifest, WASM
+
+## ⚡ Deploy Interativo (Produção)
+
+O comando `deploy` oferece um wizard interativo para configurar projetos em produção com **Nginx + Certbot SSL + PM2** automaticamente.
+
+### Como usar
+
+```bash
+npx vai-server deploy
+# ou
+one-server-4-all deploy
+```
+
+### O que o wizard faz
+
+1. **Pergunta o domínio/subdomínio** (ex: `app.meusite.com`)
+2. **Pergunta a porta** (padrão: 7000)
+3. **Configura o Nginx** com proxy reverso e suporte a WebSocket
+4. **Executa o Certbot** para gerar certificados SSL gratuitos (Let's Encrypt)
+5. **Gera o comando PM2** pronto para execução
+
+### Exemplo de output
+
+```
+🚀 one-server-4-all DEPLOYER v0.4.0
+─────────────────────────────────────────
+
+➜ Qual o domínio/subdomínio? (ex: app.meusite.com)
+  ❯ api.meusite.com
+
+➜ Qual a porta do servidor? (padrão 7000)
+  ❯ 7001
+
+➜ Deseja configurar Nginx + SSL (Certbot) agora? (s/n)
+  ❯ s
+
+📦 Configuração Final:
+────────────────────────
+Dominio: api.meusite.com
+Porta:   7001
+SSL:     Configurado via Certbot
+PM2:     pm2 start "npx vai-server --port=7001 --open=false" --name "api.meusite.com"
+────────────────────────
+
+✨ Deploy concluído com sucesso!
+```
+
+### Fluxo de produção
+
+```
+Usuário → HTTPS (Nginx:443 com Certbot) → HTTP (vai-server:porta)
+```
+
+O Nginx faz a terminação SSL e repassa para o servidor em HTTP simples, eliminando a necessidade de configurar certificados no Node.js.
 
 ## 🔧 Opções de CLI
 
