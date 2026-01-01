@@ -1,3 +1,12 @@
+# Release v0.5.0
+
+### What's Changed
+
+- 🚀 Adicionado alias `hs` para execução rápida (`hs deploy` ou `hs`)
+- 📦 Atualização de versão para publicação
+
+---
+
 # Release v0.4.0
 
 ### What's Changed
