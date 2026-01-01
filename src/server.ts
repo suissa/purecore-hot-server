@@ -14,22 +14,22 @@ const INJECTED_SCRIPT = `
 <!-- Code injected by auto-server -->
 <script>
   (function() {
-    console.log('[hot-server] Connected to hot reload');
+    console.log('[one-server-4-all] Connected to hot reload');
     const evtSource = new EventSource('/_hot_server_sse');
     evtSource.onmessage = function(event) {
       try {
         const data = JSON.parse(event.data);
         if (data.type === 'css') {
-          console.log('[hot-server] CSS changed, injecting...');
+          console.log('[one-server-4-all] CSS changed, injecting...');
           injectCSS(data.file);
         } else {
-          console.log('[hot-server] Reloading...');
+          console.log('[one-server-4-all] Reloading...');
           window.location.reload();
         }
       } catch (e) {
         // Fallback para compatibilidade
         if (event.data === 'reload') {
-          console.log('[hot-server] Reloading...');
+          console.log('[one-server-4-all] Reloading...');
           window.location.reload();
         }
       }
@@ -46,13 +46,13 @@ const INJECTED_SCRIPT = `
           // Força reload do CSS adicionando/removendo timestamp
           const newHref = href.split('?')[0] + '?v=' + timestamp;
           link.setAttribute('href', newHref);
-          console.log('[hot-server] CSS injected:', filePath);
+          console.log('[one-server-4-all] CSS injected:', filePath);
         }
       });
     }
 
     evtSource.onerror = function() {
-      console.log('[hot-server] Disconnected. Retrying...');
+      console.log('[one-server-4-all] Disconnected. Retrying...');
     };
   })();
 </script>
@@ -383,7 +383,7 @@ export class HotServer {
         const gray = (text: string) => `\x1b[90m${text}\x1b[0m`;
 
         console.log(
-          `\n  ${bold(cyan("HOT-SERVER"))} ${cyan("v" + version)}  ${gray(
+          `\n  ${bold(cyan("one-server-4-all"))} ${cyan("v" + version)}  ${gray(
             "ready in"
           )} ${bold(green(readyTime + " ms"))}\n`
         );
@@ -656,7 +656,7 @@ export class HotServer {
       </div>
 
       <div class="back">
-        Servido por <strong>purecore-hot-server</strong>
+        Servido por <strong>purecore-one-server-4-all</strong>
       </div>
     </div>
   </body>

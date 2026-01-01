@@ -22,7 +22,7 @@ export class Deployer {
 
   private printBanner() {
     console.log(
-      `\n  ${bold(magenta("🚀 HOT-SERVER DEPLOYER"))} ${gray("v0.4.0")}`
+      `\n  ${bold(magenta("🚀 one-server-4-all DEPLOYER"))} ${gray("v0.4.0")}`
     );
     console.log(`  ${gray("─────────────────────────────────────────")}\n`);
   }

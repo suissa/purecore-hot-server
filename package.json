@@ -1,12 +1,13 @@
 {
-  "name": "hot-server",
-  "version": "0.5.0",
+  "name": "@purecore/one-server-4-all",
+  "version": "0.2.0",
   "description": "Zero dependency modern hot-reload server replacement",
   "main": "dist/index.js",
   "type": "module",
   "bin": {
-    "hot-server": "./dist/index.js",
-    "hs": "./dist/index.js"
+    "one-server": "./dist/index.js",
+    "one-server-4-all": "./dist/index.js",
+    "vai-server": "./dist/index.js"
   },
   "scripts": {
     "build": "tsc",
@@ -21,7 +22,7 @@
   "keywords": [
     "http-server",
     "hot-reload",
-    "hot-server",
+    "one-server-4-all",
     "live-server",
     "zero-dependency"
   ],

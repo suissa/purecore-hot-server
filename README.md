@@ -16,9 +16,9 @@ Um servidor de desenvolvimento hot-reload moderno e leve, construído com TypeSc
 ## 🚀 Instalação
 
 ```bash
-npm install -g hot-server
+npm install -g one-server-4-all
 # ou
-bun install -g hot-server
+bun install -g one-server-4-all
 ```
 
 ## 🔒 Modo HTTPS
@@ -26,9 +26,10 @@ bun install -g hot-server
 O Hot Server suporta HTTPS com certificados auto-assinados para desenvolvimento local.
 
 ### Ativar HTTPS
+
 ```bash
 # Via linha de comando
-hot-server --https=true
+one-server-4-all --https=true
 
 # Via npm scripts
 npm run dev:https
@@ -38,6 +39,7 @@ bun run dev:https
 ```
 
 ### Gerenciamento de Certificados
+
 ```bash
 # Gerar certificados auto-assinados
 npm run certs:generate
@@ -49,30 +51,34 @@ npm run certs:info
 npm run certs:clean
 ```
 
-**Nota**: Os certificados são salvos em `.hot-server-certs/` no diretório do projeto.
+**Nota**: Os certificados são salvos em `.one-server-4-all-certs/` no diretório do projeto.
 
 ## 📖 Uso Básico
 
 ```bash
 # Na pasta do seu projeto
-hot-server
+one-server-4-all
 
 # Com opções
-hot-server --port=3000 --spa=true
+one-server-4-all --port=3000 --spa=true
 ```
 
 ## 🎯 Funcionalidades Avançadas
 
 ### CSS Hot Loading
+
 Quando você modifica arquivos `.css`, apenas o estilo é atualizado sem recarregar a página inteira.
 
 ### SPA Support
+
 ```bash
-hot-server --spa=true
+one-server-4-all --spa=true
 ```
+
 Rotas inexistentes (como `/usuarios/1`) automaticamente servem `index.html`, permitindo que seu framework frontend assuma o roteamento.
 
 ### MIME Types Suportados
+
 - **Vídeos**: MP4, WebM, OGG, AVI, MOV, WMV, FLV
 - **Áudios**: MP3, WAV, OGG, AAC, M4A, Opus
 - **Fontes**: WOFF, WOFF2, TTF, OTF, EOT
@@ -82,19 +88,20 @@ Rotas inexistentes (como `/usuarios/1`) automaticamente servem `index.html`, per
 
 ## 🔧 Opções de CLI
 
-| Opção | Descrição | Padrão |
-|-------|-----------|---------|
-| `--port=<number>` | Porta do servidor | `9999` |
-| `--root=<path>` | Diretório raiz | `.` (diretório atual) |
-| `--open=<true/false>` | Abrir navegador automaticamente | `true` |
-| `--spa=<true/false>` | Habilitar suporte SPA | `false` |
-| `--https=<true/false>` | Habilitar modo HTTPS | `false` |
+| Opção                  | Descrição                       | Padrão                |
+| ---------------------- | ------------------------------- | --------------------- |
+| `--port=<number>`      | Porta do servidor               | `9999`                |
+| `--root=<path>`        | Diretório raiz                  | `.` (diretório atual) |
+| `--open=<true/false>`  | Abrir navegador automaticamente | `true`                |
+| `--spa=<true/false>`   | Habilitar suporte SPA           | `false`               |
+| `--https=<true/false>` | Habilitar modo HTTPS            | `false`               |
 
 ## 🏗️ Como foi feito
 
 Este projeto foi desenvolvido seguindo uma arquitetura minimalista e moderna:
 
 ### Técnicas Utilizadas
+
 1. **TypeScript Estrito**: Tipagem forte em todo o código
 2. **APIs Nativas**: Uso exclusivo de módulos `node:*`
 3. **Server-Sent Events**: Comunicação bidirecional eficiente
@@ -103,6 +110,7 @@ Este projeto foi desenvolvido seguindo uma arquitetura minimalista e moderna:
 6. **CSS Injection**: DOM manipulation para hot reload inteligente
 
 ### Arquitetura
+
 ```
 src/
 ├── index.ts      # CLI e configuração
@@ -112,6 +120,7 @@ src/
 ```
 
 ### Funcionamento
+
 1. **Watcher** monitora mudanças recursivamente usando `fs.watch`
 2. **Server** serve arquivos estáticos com MIME types corretos
 3. **SSE** notifica clientes sobre mudanças em tempo real
@@ -121,30 +130,36 @@ src/
 ## 🧪 Como testar
 
 ### Teste CSS Injection
-1. Inicie o servidor: `hot-server`
+
+1. Inicie o servidor: `one-server-4-all`
 2. Modifique qualquer arquivo `.css`
 3. Observe que apenas o CSS é atualizado, sem reload da página
 
 ### Teste SPA Support
-1. Inicie com SPA: `hot-server --spa=true`
+
+1. Inicie com SPA: `one-server-4-all --spa=true`
 2. Acesse `/qualquer-rota-inexistente`
 3. Deve carregar `index.html` em vez de 404
 
 ### Teste MIME Types
+
 1. Adicione arquivos de vídeo/fonte no seu projeto
 2. Eles serão servidos com headers corretos
 
 ### Teste CORS
+
 1. Acesse arquivos de outro domínio/origin
 2. Deve funcionar sem erros de CORS
 
 ### Teste HTTPS
-1. Execute: `hot-server --https=true`
+
+1. Execute: `one-server-4-all --https=true`
 2. Observe o emoji 🔒 no log do terminal
 3. Acesse https://localhost:9999
 4. Aceite o aviso de certificado auto-assinado
 
 ### Teste Logs Detalhados
+
 1. Abra uma página HTML
 2. Observe no terminal:
    - 📄 Arquivos servidos com tamanho e tipo MIME
@@ -154,20 +169,21 @@ src/
 ## 📊 Comparação com Live Server
 
 | Feature           | Live Server | Purecore Hot Server |
-|-------------------|-------------|---------------------|
-| **Dependencies**  | Múltiplas   | ❌ Zero              |
-| **Language**      | JavaScript  | ✅ TypeScript        |
-| **CSS Injection** | ✅ Sim       | ✅ Sim               |
-| **SPA Support**   | ✅ Sim       | ✅ Sim               |
-| **MIME Types**    | Básicos     | ✅ Robustos          |
-| **CORS**          | ❌ Não       | ✅ Sim               |
-| **Installation**  | Lento       | ✅ Instantâneo       |
+| ----------------- | ----------- | ------------------- |
+| **Dependencies**  | Múltiplas   | ❌ Zero             |
+| **Language**      | JavaScript  | ✅ TypeScript       |
+| **CSS Injection** | ✅ Sim      | ✅ Sim              |
+| **SPA Support**   | ✅ Sim      | ✅ Sim              |
+| **MIME Types**    | Básicos     | ✅ Robustos         |
+| **CORS**          | ❌ Não      | ✅ Sim              |
+| **Installation**  | Lento       | ✅ Instantâneo      |
 
 ## 🔍 Análise de Dependências Obsoletas
 
 Durante o desenvolvimento, analisamos dependências comuns em servidores de desenvolvimento e identificamos quais são desnecessárias no Node.js moderno:
 
 ### ❌ Dependências Obsoletas
+
 - **`object-assign`**: Substituído por `Object.assign()` nativo
 - **`http-auth`**: Autenticação HTTP pode ser feita nativamente
 - **`colors`**: Node.js 20+ tem `util.styleText()` nativo
@@ -175,6 +191,7 @@ Durante o desenvolvimento, analisamos dependências comuns em servidores de dese
 - **`event-stream`**: ⚠️ Vulnerabilidade conhecida, usar streams nativos
 
 ### ⚡ Alternativas Nativas Utilizadas
+
 - **File System**: `node:fs` com `fs.watch()` recursivo
 - **HTTP Server**: `node:http` e `node:https` nativos
 - **Crypto**: `node:crypto` para certificados HTTPS
@@ -182,6 +199,7 @@ Durante o desenvolvimento, analisamos dependências comuns em servidores de dese
 - **Streams**: `node:stream` para Server-Sent Events
 
 ### 🎯 Resultado
+
 **Zero dependências externas** = instalação instantânea, sem vulnerabilidades de terceiros, e compatibilidade garantida com futuras versões do Node.js.
 
 ## 📝 Changelog
