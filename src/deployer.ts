@@ -69,11 +69,10 @@ export class Deployer {
     const name = domain.split(".")[0];
 
     // Monta o comando PM2
-    // Se temos certificados do Certbot e o usuário quer usar no node direto (embora com nginx proxy não precise necessariamente)
-    // O user pediu para "ter o caminho para apontar para eles".
-    // Vamos gerar o comando COM os certificados se eles existirem, e setar https=true
+    // Usamos npx para garantir que rode o pacote instalado ou baixe se necessário
+    // A sintaxe para PM2 rodar executáveis arbitrários requer 'pm2 start "cmd" --name ...' ou usar o interpreter
 
-    let pm2Command = `pm2 start dist/index.js --name "${domain}" -- --port=${port} --open=false`;
+    let pm2Command = `pm2 start "npx one-server-4-all" --name "${domain}" -- --port=${port} --open=false`;
 
     if (certPaths.key && certPaths.cert) {
       // Nota: Node node pode não ter permissão de ler /etc/letsencrypt diretamente dependendo do user
