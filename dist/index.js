@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // File: src/index.ts
-import { HotServer } from './server';
-import { configSchema } from './validator';
+import { HotServer } from './server.js';
+import { configSchema } from './validator.js';
 import path from 'node:path';
 const args = process.argv.slice(2);
 // Parsing manual simplificado de args (ex: --port=3000)

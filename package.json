@@ -1,6 +1,6 @@
 {
   "name": "hot-server",
-  "version": "0.2.0",
+  "version": "0.3.1",
   "description": "Zero dependency modern hot-reload server replacement",
   "main": "dist/index.js",
   "type": "module",
