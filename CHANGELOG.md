@@ -1,3 +1,14 @@
+# Release v0.4.0
+
+### What's Changed
+
+- ✨ Introduzido comando `deploy` interativo com UI premium
+- 🔄 Geração automática de configuração Nginx e Certbot SSL
+- 🐳 Geração de comando PM2 otimizado para produção
+- 🗑️ Substituição do antigo script Shell `cria.sh` por implementação robusta em TypeScript
+
+---
+
 # Release v0.3.2
 
 ### What's Changed
